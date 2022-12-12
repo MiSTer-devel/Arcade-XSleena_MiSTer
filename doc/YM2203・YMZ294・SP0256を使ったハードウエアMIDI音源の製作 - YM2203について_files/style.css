@@ -1,0 +1,25 @@
+@charset "utf-8";
+html			{line-height:1.6em; font-size:90%;}
+a:link			{color:blue;}
+a:visited		{color:blue;}
+a:hover			{color:darkred;}
+
+*		h1	{font-size:175%; line-height:1.5em; text-align:center; margin:0 0 0.5em 0;}
+*		h2	{font-size:130%; margin:0.5em 0;}			/* セクション */
+*		h3	{font-size:120%; margin:0.5em 0;}
+*		img	{margin:1em 0; border:0;}
+*		hr	{border:1px solid #888;}
+
+.blue			{color:blue;}
+.red			{color:red;}
+.redbold		{color:red; font-weight:bold;}
+.gray			{color:gray;}
+
+.center			{text-align:center;}
+.indent			{padding-left:1em;}
+.section_body		{padding-left:1em;}
+.tbl_menu_desc	td	{padding:0; font-size:90%; padding-right:1em; line-height:1.5em;}	/* 左寄せメニューと内容のテーブル */
+.flat_table		{border:2px solid black; border-collapse:collapse; font-size:90%; line-height:1.5em;}
+.flat_table	th	{border:1px solid black; padding:3px 10px;}
+.flat_table	td	{border:1px solid black; padding:1px 10px;}
+#footer   {margin-top:1em;}

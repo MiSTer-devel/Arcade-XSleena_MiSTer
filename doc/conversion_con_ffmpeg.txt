@@ -1,0 +1,20 @@
+//audio raw a wav
+importar como PCM 32bit signed default byte ordering, rate 55555Hz
+seleccionar y amplificar audio
+remuestrear a 48000Hz
+cambiar velocidad projecto a 48000Hz
+exportar como WAV
+
+
+//Desde linux:
+
+//ppm a png
+mogrify -format png *.ppm
+//rotar 90 grados
+mogrify -rotate 90 *.png
+
+//imagenes a mp4
+ ffmpeg -r 61 -f image2 -s 216x288 -i aso_frm_%05d.png -vcodec libx264 -crf 25  -pix_fmt yuv420p good_back1.mp4
+ 
+//añadir pista de audio wav y convertira aac, recortado según la pista mas corta
+ffmpeg -i good_back1.mp4 -i YM3526_audio_48khz.wav -c:v copy -c:a aac -shortest good_back1_audio.mp4

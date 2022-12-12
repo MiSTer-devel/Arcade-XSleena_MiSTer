@@ -1,0 +1,84 @@
+pll pll
+(
+    .refclk(CLK_50M),
+    .rst(0),
+    .outclk_0(CLK_96M),
+    .outclk_1(),
+    .outclk_2(CLK_32M), // 34M dummy
+	.locked(pll_locked),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
+);
+
+wire [63:0] reconfig_to_pll;
+wire [63:0] reconfig_from_pll;
+wire        cfg_waitrequest;
+reg         cfg_write;
+reg   [5:0] cfg_address;
+reg  [31:0] cfg_data;
+
+pll_cfg pll_cfg
+(
+	.mgmt_clk(CLK_50M),
+	.mgmt_reset(0),
+	.mgmt_waitrequest(cfg_waitrequest),
+	.mgmt_read(0),
+	.mgmt_readdata(),
+	.mgmt_write(cfg_write),
+	.mgmt_address(cfg_address),
+	.mgmt_writedata(cfg_data),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
+);
+
+//                        clock, odd, bypass, high_count, low_count
+wire [31:0] PLL_PARAM_32M = { 5'd1, 1'b1, 1'b0, 8'd23, 8'd22 }; // 32Mhz
+//wire [31:0] PLL_PARAM_32M = { 5'd1, 1'b1, 1'b0, 8'd8, 8'd7 }; // 32Mhz
+//wire [31:0] PLL_PARAM_34M = { 5'd1, 1'b0, 1'b0, 8'd7, 8'd7 }; // 34.28714Mhz
+wire [31:0] PLL_PARAM_34M = { 5'd1, 1'b1, 1'b0, 8'd21, 8'd20 }; // 35.121951Mhz
+
+reg video_60hz_lat, video_50hz_lat;
+
+always @(posedge CLK_50M) begin
+	reg overclock = 0, overclock2 = 0;
+	reg [2:0] state = 0;
+	reg overclock_r = 0;
+
+	if (pll_locked) begin
+		if (video_60hz_lat != video_60hz || video_50hz_lat != video_50hz) begin
+			video_50hz_lat <= video_50hz;
+			video_60hz_lat <= video_60hz;
+		end
+
+		overclock <= video_60hz;
+		overclock2 <= overclock;
+
+		cfg_write <= 0;
+		if(overclock2 == overclock && overclock2 != overclock_r) begin
+			state <= 1;
+			overclock_r <= overclock2;
+		end
+
+		if(!cfg_waitrequest) begin
+			if(state)
+				state <= state + 3'd1;
+			case(state)
+				1: begin
+					cfg_address <= 0;
+					cfg_data <= 0;
+					cfg_write <= 1;
+				end
+				5: begin
+					cfg_address <= 'b101;
+					cfg_data <= overclock_r ? PLL_PARAM_34M : PLL_PARAM_32M;
+					cfg_write <= 1;
+				end
+				7: begin
+					cfg_address <= 2;
+					cfg_data <= 0;
+					cfg_write <= 1;
+				end
+			endcase
+		end
+	end
+end

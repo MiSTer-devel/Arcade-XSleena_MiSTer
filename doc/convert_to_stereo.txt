@@ -1,0 +1,2 @@
+Technical
+The board can be converted to rather effective stereo. The three sound channels, two music/effects and one effects-only, are mixed simply by resistors. Taking each music channel before the resistors to an amplifier and leaving the effects channel and normal output unconnected, gives a pretty convincing sound. The effects sound "leaks" through the resistors to both channels.

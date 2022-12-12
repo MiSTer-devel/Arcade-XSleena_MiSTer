@@ -1,0 +1,65 @@
+Info (12128): Elaborating entity "jt03" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84"
+Info (12128): Elaborating entity "jt12_top" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12"
+Info (12128): Elaborating entity "jt12_dout" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_dout:u_dout"
+Info (12128): Elaborating entity "jt12_mmr" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr"
+Warning (10034): Output port "flag_mask" at jt12_mmr.v(80) has no driver
+Info (12128): Elaborating entity "jt12_div" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_div:u_div"
+Info (12128): Elaborating entity "jt12_reg" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg"
+Info (12128): Elaborating entity "jt12_sumch" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_sumch:u_opch_II"
+Info (12128): Elaborating entity "jt12_kon" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_kon:u_kon"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_kon:u_kon|jt12_sh_rst:u_konch1"
+Info (12128): Elaborating entity "jt12_mod" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_mod:u_mod"
+Info (10264): Verilog HDL Case Statement information at jt12_mod.v(116): all case item expressions in this case statement are onehot
+Info (12128): Elaborating entity "jt12_csr" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_csr:u_csr0"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_csr:u_csr0|jt12_sh_rst:u_regch"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_mmr:u_mmr|jt12_reg:u_reg|jt12_sh_rst:u_regch"
+Info (12128): Elaborating entity "jt12_timers" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_timers:u_timers"
+Info (12128): Elaborating entity "jt12_timer" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_timers:u_timers|jt12_timer:timer_A"
+Warning (10036): Verilog HDL or VHDL warning at jt12_timers.v(106): object "free_next" assigned a value but never read
+Info (12128): Elaborating entity "jt12_timer" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_timers:u_timers|jt12_timer:timer_B"
+Warning (10036): Verilog HDL or VHDL warning at jt12_timers.v(106): object "free_next" assigned a value but never read
+Info (12128): Elaborating entity "jt49" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg"
+Info (10264): Verilog HDL Case Statement information at jt49.v(181): all case item expressions in this case statement are onehot
+Info (12128): Elaborating entity "jt49_cen" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_cen:u_cen"
+Info (12128): Elaborating entity "jt49_div" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_div:u_chA"
+Info (12128): Elaborating entity "jt49_noise" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_noise:u_ng"
+Info (12128): Elaborating entity "jt49_div" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_noise:u_ng|jt49_div:u_div"
+Info (12128): Elaborating entity "jt49_div" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_div:u_envdiv"
+Info (12128): Elaborating entity "jt49_eg" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_eg:u_env"
+Info (12128): Elaborating entity "jt49_exp" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt49:gen_ssg.u_psg|jt49_exp:u_exp"
+Warning (10030): Net "lut.data_a" at jt49_exp.v(38) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lut.waddr_a" at jt49_exp.v(38) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lut.we_a" at jt49_exp.v(38) has no driver or initial value, using a default initial value '0'
+Info (12128): Elaborating entity "jt12_pg" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg"
+Info (12128): Elaborating entity "jt12_pg_comb" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_pg_comb:u_comb"
+Info (12128): Elaborating entity "jt12_pm" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_pg_comb:u_comb|jt12_pm:u_pm"
+Warning (10030): Net "lfo_sh1_lut.data_a" at jt12_pm.v(38) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lfo_sh1_lut.waddr_a" at jt12_pm.v(38) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lfo_sh2_lut.data_a" at jt12_pm.v(39) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lfo_sh2_lut.waddr_a" at jt12_pm.v(39) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lfo_sh1_lut.we_a" at jt12_pm.v(38) has no driver or initial value, using a default initial value '0'
+Warning (10030): Net "lfo_sh2_lut.we_a" at jt12_pm.v(39) has no driver or initial value, using a default initial value '0'
+Info (12128): Elaborating entity "jt12_pg_dt" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_pg_comb:u_comb|jt12_pg_dt:u_dt"
+Info (12128): Elaborating entity "jt12_pg_inc" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_pg_comb:u_comb|jt12_pg_inc:u_inc"
+Info (12128): Elaborating entity "jt12_pg_sum" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_pg_comb:u_comb|jt12_pg_sum:u_sum"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_sh_rst:u_phsh"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_pg:u_pg|jt12_sh_rst:u_pad"
+Info (12128): Elaborating entity "jt12_eg" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg"
+Info (12128): Elaborating entity "jt12_eg_cnt" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_eg_cnt:u_egcnt"
+Info (12128): Elaborating entity "jt12_eg_comb" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_eg_comb:u_comb"
+Info (12128): Elaborating entity "jt12_eg_ctrl" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_eg_comb:u_comb|jt12_eg_ctrl:u_ctrl"
+Info (12128): Elaborating entity "jt12_eg_step" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_eg_comb:u_comb|jt12_eg_step:u_step"
+Info (12128): Elaborating entity "jt12_eg_pure" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_eg_comb:u_comb|jt12_eg_pure:u_pure"
+Info (12128): Elaborating entity "jt12_eg_final" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_eg_comb:u_comb|jt12_eg_final:u_final"
+Info (12128): Elaborating entity "jt12_sh" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_sh:u_cntsh"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_sh_rst:u_egsh"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_sh_rst:u_egstate"
+Info (12128): Elaborating entity "jt12_sh_rst" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_eg:u_eg|jt12_sh_rst:u_ssg_inv"
+Info (12128): Elaborating entity "jt12_sh" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_sh:u_egpad"
+Info (12128): Elaborating entity "jt12_op" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_op:u_op"
+Info (12128): Elaborating entity "jt12_sh" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_op:u_op|jt12_sh:prev1_buffer"
+Info (12128): Elaborating entity "jt12_sh" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_op:u_op|jt12_sh:phasemod_sh"
+Info (12128): Elaborating entity "jt12_logsin" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_op:u_op|jt12_logsin:u_logsin"
+Info (12128): Elaborating entity "jt12_exprom" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt12_op:u_op|jt12_exprom:u_exprom"
+Info (12128): Elaborating entity "jt03_acc" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt03_acc:gen_2203_acc.u_acc"
+Info (12128): Elaborating entity "jt12_single_acc" for hierarchy "emu:emu|XSleenaCore:xlc|XSleenaCore_SoundCPU:xs_snd|jt03:ic84|jt12_top:u_jt12|jt03_acc:gen_2203_acc.u_acc|jt12_single_acc:u_mono"
