@@ -18,13 +18,27 @@
 
 `default_nettype none
 `timescale 1ns/10ps
-
+`define CPU_OVERCLOCK_HACK
 import xain_pkg::*;
 
 module XSleenaCore_cpuA_B (
 	input wire clk, //48MHz
 	input wire clk_ram, //96MHz
 	input wire clk12M_cen,
+	//CPU Clocking
+	input wire main_4x,
+	input wire main_4xb,
+	input wire main_2x,
+	input wire main_2xb,
+	input wire main_1x,
+	input wire main_1xb,
+	input wire sub_4x,
+	input wire sub_4xb,
+	input wire sub_2x,
+	input wire sub_2xb,
+	input wire sub_1x,
+	input wire sub_1xb,
+
   	input wire RSTn,
 	input wire VBLK,
 	input wire W3A09n,
@@ -61,6 +75,12 @@ module XSleenaCore_cpuA_B (
 	output logic sdr_req_b,
 	input wire sdr_rdy_b,
 	input wire [15:0] sdr_data_b,
+	//ROM interface
+    input bram_wr,
+    input [7:0] bram_data,
+    input [19:0] bram_addr,
+    input [1:0] bram_cs,
+	//pause interface
 	input wire pause_rq
 );
 //  -----------------------------------------------------------------------------------------------------------------------------------------------
@@ -153,36 +173,37 @@ module XSleenaCore_cpuA_B (
 		.cen(IMS) // signal whose edge will trigger the FF
   	);
 
+
 	logic ic87B_Q;
-	// ttl_7474 #(.BLOCKS(1), .DELAY_RISE(10), .DELAY_FALL(10)) ic87B
-	// (.Clear_bar(1'b1), .Preset_bar(1'b1), .D(M2H), .Clk(M1H), .Q(ic87B_Q), .Q_bar(Q2)); //Q -> maincpu Q clock, Qn -> IRQ2n
+	logic ic76d; //NOT gate
+	//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
 	DFF_pseudoAsyncClrPre #(.W(1)) ic87B ( //Q -> maincpu Q clock, Qn -> IRQ2n
 		.clk(clk),
-		.din(M2H),
+		.din(main_1x),
 		.q(ic87B_Q),
 		.qn(Q2),
 		.set(1'b0),    // active high
 		.clr(1'b0),    // active high
-		.cen(M1H) // signal whose edge will trigger the FF
+		.cen(main_2x) // signal whose edge will trigger the FF
   	);
 
-	logic ic76d; //NOT gate
-	assign ic76d = ~M2H; //maincpu E clock
+	assign ic76d = ~main_1x; //maincpu E clock
+// `else
+// 	DFF_pseudoAsyncClrPre #(.W(1)) ic87B ( //Q -> maincpu Q clock, Qn -> IRQ2n
+// 		.clk(clk),
+// 		.din(M2H),
+// 		.q(ic87B_Q),
+// 		.qn(Q2),
+// 		.set(1'b0),    // active high
+// 		.clr(1'b0),    // active high
+// 		.cen(M1H) // signal whose edge will trigger the FF
+//   	);
 
-	//CPU OVERCLOCK HACK
-	// DFF_pseudoAsyncClrPre #(.W(1)) ic87B ( //Q -> maincpu Q clock, Qn -> IRQ2n
-	// 	.clk(clk),
-	// 	.din(M1H),
-	// 	.q(ic87B_Q),
-	// 	.qn(Q2),
-	// 	.set(1'b0),    // active high
-	// 	.clr(1'b0),    // active high
-	// 	.cen(HCLK) // signal whose edge will trigger the FF
-  	// );
-
-	// logic ic76d; //NOT gate
-	// assign ic76d = ~M1H; //maincpu E clock
+// 	assign ic76d = ~M2H; //maincpu E clock
+//`endif
 	//////////////////////
+
 
 	//For simulation used the asynchronous version by Greg Miller, for synthesis the Sorgelig synchronous one.
 	logic maincpu_RW;
@@ -200,13 +221,8 @@ module XSleenaCore_cpuA_B (
 	always @(posedge clk) begin
 		clkE_prev <= ic76d;
 		clkQ_prev <= ic87B_Q;
-
-	// 	if(clkE_prev && !ic76d) clkEf_cen <= 1'b1;
-	// 	else clkEf_cen <= 1'b0;
-		
-	// 	if(clkQ_prev && !ic87B_Q) clkQf_cen <= 1'b1;
-	// 	else clkQf_cen <= 1'b0;
 	end 
+
 	always_comb begin
 		clkEf_cen = clkE_prev && !ic76d;
 		clkQf_cen = clkQ_prev && !ic87B_Q;
@@ -265,7 +281,6 @@ module XSleenaCore_cpuA_B (
 
 	logic ic86c; //NAND gate
  	assign ic86c = ~(ic76a & AB[14]);
-   //assign ic86c = ~(ic76a & maincpu_A[14]);
 
 	//--- Intel P27256 32Kx8 CPUA ROMS 250ns ---
 	//*** Start of ROM request logic, for 16bit wide SDRAM access ***
@@ -357,25 +372,72 @@ module XSleenaCore_cpuA_B (
 	//end of //debug state machine
 
 	//*** End of ROM request logic ***
-	assign sdr_addr_a = REGION_MAIN_CPU_ROM.base_addr[24:0] | req_rom_addr_a; //64Kb ROM
-	
-	always_ff @(posedge clk_ram) begin
-		if(sdr_rdy_a) begin
-			maincpu_ROM_Dout <= sdr_data_a;
-		end
-	end
-	//Select the byte from SDRAM word, this optimize the number of SDRAM accesses required
-	//Byte ordering: adjust for Big Endian
-	assign maincpu_ROM_Byte_Dout = req_rom_addr_a[0] ? maincpu_ROM_Dout[15:8] : maincpu_ROM_Dout[7:0];
+
+	//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	logic [7:0] ic66_ROM_Dout;
+	logic [7:0] ic65_ROM_Dout;
+
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(15)) ic66(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(bram_addr[14:0]),
+		.ADDR1(maincpu_A[14:0]),
+		.DATA0(bram_data),
+		.DATA1(8'h00),
+		.cen0(bram_cs[0] & ~bram_addr[15]), //lower 32Kb
+		.cen1(1'b1),
+		.we0(bram_wr),
+		.we1(1'b0),
+		.Q0(),
+		.Q1(ic66_ROM_Dout)
+	);
+
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(15)) ic65(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(bram_addr[14:0]),
+		.ADDR1({BSL,maincpu_A[13:0]}),
+		.DATA0(bram_data),
+		.DATA1(8'h00),
+		.cen0(bram_cs[0] & bram_addr[15]), //upper 32Kb
+		.cen1(1'b1),
+		.we0(bram_wr),
+		.we1(1'b0),
+		.Q0(),
+		.Q1(ic65_ROM_Dout)
+	);
 
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces ic88 tri-state logic ---
 	//main CPU data input
     always_ff @(posedge clk) begin
-        if(!ic86c && !ic76b)            maincpu_Din <= maincpu_ROM_Byte_Dout;
-        else if(!ic76a && !ic76b)       maincpu_Din <= maincpu_ROM_Byte_Dout; 
+        if(!ic86c && !ic76b)              maincpu_Din <= ic65_ROM_Dout;
+        else if(!ic76a && !ic76b)         maincpu_Din <= ic66_ROM_Dout; 
 		else if(!ic75d)                   maincpu_Din <= MAINCPU_EXT_Din;
 		else                              maincpu_Din <= 8'hFF;             
     end
+// `else
+// 	assign sdr_addr_a = REGION_MAIN_CPU_ROM.base_addr[24:0] | req_rom_addr_a; //64Kb ROM
+	
+// 	always_ff @(posedge clk_ram) begin
+// 		if(sdr_rdy_a) begin
+// 			maincpu_ROM_Dout <= sdr_data_a;
+// 		end
+// 	end
+// 	//Select the byte from SDRAM word, this optimize the number of SDRAM accesses required
+// 	//Byte ordering: adjust for Big Endian
+// 	assign maincpu_ROM_Byte_Dout = req_rom_addr_a[0] ? maincpu_ROM_Dout[15:8] : maincpu_ROM_Dout[7:0];
+
+// //--- FPGA Synthesizable unidirectinal data bus MUX, replaces ic88 tri-state logic ---
+// 	//main CPU data input
+//     always_ff @(posedge clk) begin
+//         if(!ic86c && !ic76b)            maincpu_Din <= maincpu_ROM_Byte_Dout;
+//         else if(!ic76a && !ic76b)       maincpu_Din <= maincpu_ROM_Byte_Dout; 
+// 		else if(!ic75d)                   maincpu_Din <= MAINCPU_EXT_Din;
+// 		else                              maincpu_Din <= 8'hFF;             
+//     end
+// `endif
+
 
 	//add one main clock period delay because the LS245 replace
 	always_ff @(posedge clk) begin
@@ -396,14 +458,27 @@ module XSleenaCore_cpuA_B (
 
 	logic [7:0] ic67_Y; //3-8 Decoder
 
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
 	ttl_74138 #(.WIDTH_OUT(8), .DELAY_RISE(0), .DELAY_FALL(0)) ic67
 	(
 		.Enable1_bar(AB[14]), //4 G2An
-		.Enable2_bar(M2H), //5 G2Bn
+		.Enable2_bar(main_1x), //5 G2Bn
 		.Enable3(ic76a), //6 G1
 		.A(AB[13:11]), //3,2,1 C,B,A
 		.Y(ic67_Y) //7,9,10,11,12,13,14,15 Y[7:0]
 	);
+	//CPU OVERCLOCK HACK
+// `else
+// 	ttl_74138 #(.WIDTH_OUT(8), .DELAY_RISE(0), .DELAY_FALL(0)) ic67
+// 	(
+// 		.Enable1_bar(AB[14]), //4 G2An
+// 		.Enable2_bar(M2H), //5 G2Bn
+// 		.Enable3(ic76a), //6 G1
+// 		.A(AB[13:11]), //3,2,1 C,B,A
+// 		.Y(ic67_Y) //7,9,10,11,12,13,14,15 Y[7:0]
+// 	);
+// `endif
 
 	logic ic68; //4-input NAND gate LS20
 	assign  ic68 = ~(&ic67_Y[3:0]);
@@ -434,10 +509,12 @@ module XSleenaCore_cpuA_B (
 //SWI3  (FFF2-FFF3) 0x8019
 
 	logic ic57b; //NOT gate
-	assign ic57b = ~M2Hn;
-
-	//CPU OVERCLOCK HACK
-	// assign ic57b = ~M1Hn;
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	assign ic57b = ~sub_1xb;
+// `else
+// 	assign ic57b = ~M2Hn;
+// `endif
 
 	//For simulation used the asynchronous version by Greg Miller
 	logic subcpu_RW;
@@ -498,33 +575,34 @@ module XSleenaCore_cpuA_B (
   	);
 
 	logic ic17b_Q, ic17b_Qn;
+	logic ic6b; //3-input NAND gate
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
 	DFF_pseudoAsyncClrPre #(.W(1)) ic17b ( //shared RAM RnW
 		.clk(clk),
-		.din(M1H),
+		.din(sub_2x),
 		.q(ic17b_Q),
 		.qn(ic17b_Qn),
 		.set(1'b0),    // active high
 		.clr(1'b0),    // active high
-		.cen(HCLK) // signal whose edge will trigger the FF
+		.cen(sub_4x) // signal whose edge will trigger the FF
   	);
 
-	logic ic6b; //3-input NAND gate
-	assign ic6b = ~(ic17b_Qn & M2Hn & ic76b);
+	assign ic6b = ~(ic17b_Qn & sub_1xb & ic76b);
+// `else
+// 	DFF_pseudoAsyncClrPre #(.W(1)) ic17b ( //shared RAM RnW
+// 		.clk(clk),
+// 		.din(M1H),
+// 		.q(ic17b_Q),
+// 		.qn(ic17b_Qn),
+// 		.set(1'b0),    // active high
+// 		.clr(1'b0),    // active high
+// 		.cen(HCLK) // signal whose edge will trigger the FF
+//   	);
 
-	//CPU OVERCLOCK HACK
-	// DFF_pseudoAsyncClrPre #(.W(1)) ic17b ( //shared RAM RnW
-	// 	.clk(clk),
-	// 	.din(HCLK),
-	// 	.q(ic17b_Q),
-	// 	.qn(ic17b_Qn),
-	// 	.set(1'b0),    // active high
-	// 	.clr(1'b0),    // active high
-	// 	.cen(clk12M_cen) // signal whose edge will trigger the FF
-  	// );
+// 	assign ic6b = ~(ic17b_Qn & M2Hn & ic76b);
+// `endif
 
-	// logic ic6b; //3-input NAND gate
-	//assign ic6b = ~(ic17b_Qn & M1Hn & ic76b);
-	////////////////////
 	assign WDn = ic6b;
 
 	logic ic57c; //NOT gate
@@ -625,26 +703,91 @@ module XSleenaCore_cpuA_B (
 	//end of //debug state machine
 
 	//*** End of ROM request logic ***
-	assign sdr_addr_b = REGION_SUB_CPU_ROM.base_addr[24:0] | req_rom_addr_b; //64Kb ROM
+
+	//CPU OVERCLOCK HACK
+//`ifdef CPU_OVERCLOCK_HACK
+	logic [7:0] ic29_ROM_Dout;
+	logic [7:0] ic15_ROM_Dout;
+
+	//PORT0: ROM load interface
+	//PORT1: normal ROM access interface
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(15)) ic29(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(bram_addr[14:0]),
+		.ADDR1(subcpu_A[14:0]),
+		.DATA0(bram_data),
+		.DATA1(8'h00),
+		.cen0(bram_cs[1] & ~bram_addr[15]), //lower 32Kb
+		.cen1(1'b1),
+		.we0(bram_wr),
+		.we1(1'b0),
+		.Q0(),
+		.Q1(ic29_ROM_Dout)
+	);
+
+	SRAM_dual_sync #(.DATA_WIDTH(8), .ADDR_WIDTH(15)) ic15(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(bram_addr[14:0]),
+		.ADDR1({ic56a_Q,subcpu_A[13:0]}),
+		.DATA0(bram_data),
+		.DATA1(8'h00),
+		.cen0(bram_cs[1] & bram_addr[15]), //upper 32Kb
+		.cen1(1'b1),
+		.we0(bram_wr),
+		.we1(1'b0),
+		.Q0(),
+		.Q1(ic15_ROM_Dout)
+	);
+
+//--- FPGA Synthesizable unidirectinal data bus MUX, replaces ic88 tri-state logic ---
+	//sub CPU data input
+    always_ff @(posedge clk) begin
+        if     (!ic36d)              subcpu_Din <= ic15_ROM_Dout;
+        else if(!ic57c)              subcpu_Din <= ic29_ROM_Dout; 
+		else                         subcpu_Din <= SUBCPU_EXT_Din;           
+    end
+// `else
+// 	assign sdr_addr_b = REGION_SUB_CPU_ROM.base_addr[24:0] | req_rom_addr_b; //64Kb ROM
 	
-	always_ff @(posedge clk_ram) begin
-		if(sdr_rdy_b) begin
-			subcpu_ROM_Dout <= sdr_data_b;
-		end
-	end
-	//Select the byte from SDRAM word, this optimize the number of SDRAM accesses required
-	//Byte ordering: adjust for Big Endian
-	assign subcpu_ROM_Byte_Dout = req_rom_addr_b[0] ? subcpu_ROM_Dout[15:8] : subcpu_ROM_Dout[7:0];
+// 	always_ff @(posedge clk_ram) begin
+// 		if(sdr_rdy_b) begin
+// 			subcpu_ROM_Dout <= sdr_data_b;
+// 		end
+// 	end
+// 	//Select the byte from SDRAM word, this optimize the number of SDRAM accesses required
+// 	//Byte ordering: adjust for Big Endian
+// 	assign subcpu_ROM_Byte_Dout = req_rom_addr_b[0] ? subcpu_ROM_Dout[15:8] : subcpu_ROM_Dout[7:0];
+	
+// 	always_ff @(posedge clk) begin
+//         if     (!ic36d)              subcpu_Din <= subcpu_ROM_Byte_Dout; //ic15_ROM_Dout;
+//         else if(!ic57c)              subcpu_Din <= subcpu_ROM_Byte_Dout; //ic29_ROM_Dout; 
+// 		else                         subcpu_Din <= SUBCPU_EXT_Din;           
+//     end
+// `endif
 
 	logic [7:0] ic58_Y; //3-8 Decoder
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
 	ttl_74138 #(.WIDTH_OUT(8), .DELAY_RISE(0), .DELAY_FALL(0)) ic58
 	(
-		.Enable1_bar(M2Hn), //4 G2An
+		.Enable1_bar(sub_1xb), //4 G2An
 		.Enable2_bar(subcpu_A[15]), //Only enabled for addresses < 0x8000.
 		.Enable3(1'b1), //6 G1
 		.A({subcpu_RW,subcpu_A[14:13]}), //3,2,1 C,B,A
 		.Y(ic58_Y) //7,9,10,11,12,13,14,15 Y[7:0]
 	);
+// `else
+// 	ttl_74138 #(.WIDTH_OUT(8), .DELAY_RISE(0), .DELAY_FALL(0)) ic58
+// 	(
+// 		.Enable1_bar(M2Hn), //4 G2An
+// 		.Enable2_bar(subcpu_A[15]), //Only enabled for addresses < 0x8000.
+// 		.Enable3(1'b1), //6 G1
+// 		.A({subcpu_RW,subcpu_A[14:13]}), //3,2,1 C,B,A
+// 		.Y(ic58_Y) //7,9,10,11,12,13,14,15 Y[7:0]
+// 	);
+// `endif
 
 	logic ic64a; //AND gate
 	assign ic64a = (ic58_Y[0] & ic58_Y[4]);
@@ -653,13 +796,6 @@ module XSleenaCore_cpuA_B (
 	logic [7:0] subcpu_Dout2;
 
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces ic88 tri-state logic ---
-	//sub CPU data input
-    always_ff @(posedge clk) begin
-        if     (!ic36d)              subcpu_Din <= subcpu_ROM_Byte_Dout; //ic15_ROM_Dout;
-        else if(!ic57c)              subcpu_Din <= subcpu_ROM_Byte_Dout; //ic29_ROM_Dout; 
-		else                         subcpu_Din <= SUBCPU_EXT_Din;           
-    end
-
 	always_ff @(posedge clk) begin
 		if(subcpu_RW && !ic64a) SUBCPU_EXT_Din <= SHARED_SRAM_Dout;
 		else                    SUBCPU_EXT_Din <= 8'hFF; //replaces hi-Z bus state

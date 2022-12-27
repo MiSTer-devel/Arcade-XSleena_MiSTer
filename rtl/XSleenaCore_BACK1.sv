@@ -5,12 +5,17 @@
 `default_nettype none
 `timescale 1ns/100ps
 //`define DEFAULT_REG_VALS
+`define CPU_OVERCLOCK_HACK
 import xain_pkg::*;
 
 //Background1 tilemap address mapping: 0x3000-37FF
 module XSleenaCore_BACK1 (
 	input wire clk,
 	input wire clk_ram,
+	//CPU Clocking
+	input wire main_2xb,
+
+	input wire HCLK, //clock for CPU_OVERCLOCK_HACK
 	input wire RESETn,
 	input wire M1Hn,
 	input wire [10:0] AB,
@@ -122,40 +127,62 @@ module XSleenaCore_BACK1 (
 	logic ic75a; //NOT gate
 	assign ic75a = ~M1Hn;
 
-	logic [3:0] ic94_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic94 
-	(.Enable_bar(1'b0),.Select(BACK1SELn),
-	.A_2D({ic95_Q[7],AB[3],ic95_Q[6],AB[2],ic95_Q[5],AB[1],ic95_Q[4],AB[0]}),
-	.Y(ic94_Y));
-
-	logic [3:0] ic93_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic93 
-	(.Enable_bar(1'b0),.Select(BACK1SELn),
-	.A_2D({SUM_Y[7],AB[7],SUM_Y[6],AB[6],SUM_Y[5],AB[5],SUM_Y[4],AB[4]}),
-	.Y(ic93_Y));
-
-	logic [3:0] ic110_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic110 
-	(.Enable_bar(1'b0),.Select(BACK1SELn),
-	.A_2D({1'b1,WDn,ic75a,AB[10],SUM_Y[8],AB[9],ic63B_Q,AB[8]}),
-	.Y(ic110_Y));
-
 	//TMM2018-55 2Kx8bit 55ns SRAM
-	logic [7:0] SRAM_Din, SRAM_Dout;
-	//"xs_title_bgram1_vmem.txt"
-	// SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_jungle_back2.bin_vmem.txt")) ic121(
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_desert_bgram1.bin_vmem.txt")) ic121(
-	//SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_title_bgram1_vmem.txt")) ic121(
-		.clk(clk),
-		.ADDR({ic110_Y[2:0],ic93_Y[3:0],ic94_Y[3:0]}),
-		.DATA(SRAM_Din),
-		.cen(1'b1), //active high
-		.we(~ic110_Y[3]), //active high
-		.Q(SRAM_Dout)
-    );
+	logic [7:0] SRAM_Din, SRAM_Dout, SRAM_Dout2;
+
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic121(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(AB[10:0]),
+		.ADDR1({ic75a,SUM_Y[8],ic63B_Q,SUM_Y[7:4],ic95_Q[7:4]}),
+		.DATA0(SRAM_Din),
+		.DATA1(8'h00),
+		.cen0(1'b1),
+		.cen1(1'b1),
+		.we0(BACK1SELn ? 1'b0 : ~WDn),
+		.we1(1'b0),
+		.Q0(SRAM_Dout),
+		.Q1(SRAM_Dout2)
+	);
+// `else
+// 	logic [3:0] ic94_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic94 
+// 	(.Enable_bar(1'b0),.Select(BACK1SELn),
+// 	.A_2D({ic95_Q[7],AB[3],ic95_Q[6],AB[2],ic95_Q[5],AB[1],ic95_Q[4],AB[0]}),
+// 	.Y(ic94_Y));
+
+// 	logic [3:0] ic93_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic93 
+// 	(.Enable_bar(1'b0),.Select(BACK1SELn),
+// 	.A_2D({SUM_Y[7],AB[7],SUM_Y[6],AB[6],SUM_Y[5],AB[5],SUM_Y[4],AB[4]}),
+// 	.Y(ic93_Y));
+
+// 	logic [3:0] ic110_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic110 
+// 	(.Enable_bar(1'b0),.Select(BACK1SELn),
+// 	.A_2D({1'b1,WDn,ic75a,AB[10],SUM_Y[8],AB[9],ic63B_Q,AB[8]}),
+// 	.Y(ic110_Y));
+
+// 	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic121(
+// 		.clk(clk),
+// 		.ADDR({ic110_Y[2:0],ic93_Y[3:0],ic94_Y[3:0]}),
+// 		.DATA(SRAM_Din),
+// 		.cen(1'b1), //active high
+// 		.we(~ic110_Y[3]), //active high
+// 		.Q(SRAM_Dout)
+//     );
+// 	assign SRAM_Dout2 = SRAM_Dout;
+// `endif
 
 	logic ic16d; //OR gate
-	assign ic16d = (M1Hn | BACK1SELn);
+	//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	assign ic16d = (main_2xb | BACK1SELn);
+// `else
+// 	assign ic16d = (M1Hn | BACK1SELn);
+// `endif
 
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces tri-state logic ---
 // This replaces TTL logic LS245 ICs: ic80
@@ -174,13 +201,13 @@ module XSleenaCore_BACK1 (
 //-------------------------------------------------------------------------------
 
 	logic [7:0] ic81_Q;
-	ttl_74273_sync ic81(.CLRn(1'b1), .Clk(clk), .Cen(T2n), .D(SRAM_Dout), .Q(ic81_Q));
+	ttl_74273_sync ic81(.CLRn(1'b1), .Clk(clk), .Cen(T2n), .D(SRAM_Dout2), .Q(ic81_Q));
 
 	logic [7:0] ic98_Q;
 	ttl_74273_sync ic98(.CLRn(1'b1), .Clk(clk), .Cen(BLA), .D(ic81_Q), .Q(ic98_Q));
 
 	logic [6:0] ic82_Q;
-	ttl_74273_sync #(.BLOCKS(7)) ic82(.CLRn(1'b1), .Clk(clk), .Cen(T3n), .D({SRAM_Dout[7:4],SRAM_Dout[2:0]}), .Q(ic82_Q));
+	ttl_74273_sync #(.BLOCKS(7)) ic82(.CLRn(1'b1), .Clk(clk), .Cen(T3n), .D({SRAM_Dout2[7:4],SRAM_Dout2[2:0]}), .Q(ic82_Q));
 
 	logic [6:0] ic99_Q;
 	ttl_74273_sync #(.BLOCKS(7)) ic99(.CLRn(1'b1), .Clk(clk), .Cen(BLA), .D(ic82_Q), .Q(ic99_Q));

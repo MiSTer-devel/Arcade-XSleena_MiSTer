@@ -5,12 +5,16 @@
 `default_nettype none
 `timescale 1ns/100ps
 //`define DEFAULT_REG_VALS
+`define CPU_OVERCLOCK_HACK
 import xain_pkg::*;
 
 //Background2 RAM tilemap address mapping: 0x2800-2FFF
 module XSleenaCore_BACK2 (
 	input wire clk,
 	input wire clk_ram,
+	//CPU Clocking
+	input wire main_2xb,
+
 	input wire RESETn,
 	input wire M1Hn,
 	input wire [10:0] AB,
@@ -120,40 +124,63 @@ module XSleenaCore_BACK2 (
 		.cen(HCLKn) // signal whose edge will trigger the FF
   	);
 
-	logic [3:0] ic9_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic9 
-	(.Enable_bar(1'b0),.Select(BACK2SELn),
-	.A_2D({ic10_Q[7],AB[3],ic10_Q[6],AB[2],ic10_Q[5],AB[1],ic10_Q[4],AB[0]}),
-	.Y(ic9_Y));
-
-	logic [3:0] ic24_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic24 
-	(.Enable_bar(1'b0),.Select(BACK2SELn),
-	.A_2D({SUM_Y[7],AB[7],SUM_Y[6],AB[6],SUM_Y[5],AB[5],SUM_Y[4],AB[4]}),
-	.Y(ic24_Y));
-
-	logic [3:0] ic8_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic110 
-	(.Enable_bar(1'b0),.Select(BACK2SELn),
-	.A_2D({1'b1,WDn,~M1Hn,AB[10],SUM_Y[8],AB[9],ic13B_Q,AB[8]}), //HACK ~M1Hn
-	.Y(ic8_Y));
-
 	//TMM2018-55 2Kx8bit 55ns SRAM 
-	logic [7:0] SRAM_Din, SRAM_Dout;
-	//SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_jungle_back1.bin_vmem.txt")) ic22(
-	//SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_jungle_back1.bin_vmem.txt")) ic22(
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_desert_bgram0.bin_vmem.txt")) ic22(	
-	//SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("xs_title_bgram0_vmem.txt")) ic22(
-		.clk(clk),
-		.ADDR({ic8_Y[2:0],ic24_Y[3:0],ic9_Y[3:0]}),
-		.DATA(SRAM_Din),
-		.cen(1'b1), //active high
-		.we(~ic8_Y[3]), //active high
-		.Q(SRAM_Dout)
-    );
+	logic [7:0] SRAM_Din, SRAM_Dout, SRAM_Dout2;
+
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic22(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(AB[10:0]),
+		.ADDR1({~M1Hn,SUM_Y[8],ic13B_Q,SUM_Y[7:4],ic10_Q[7:4]}),
+		.DATA0(SRAM_Din),
+		.DATA1(8'h00),
+		.cen0(1'b1),
+		.cen1(1'b1),
+		.we0(BACK2SELn ? 1'b0 : ~WDn),
+		.we1(1'b0),
+		.Q0(SRAM_Dout),
+		.Q1(SRAM_Dout2)
+	);
+// `else
+// 	logic [3:0] ic9_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic9 
+// 	(.Enable_bar(1'b0),.Select(BACK2SELn),
+// 	.A_2D({ic10_Q[7],AB[3],ic10_Q[6],AB[2],ic10_Q[5],AB[1],ic10_Q[4],AB[0]}),
+// 	.Y(ic9_Y));
+
+// 	logic [3:0] ic24_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic24 
+// 	(.Enable_bar(1'b0),.Select(BACK2SELn),
+// 	.A_2D({SUM_Y[7],AB[7],SUM_Y[6],AB[6],SUM_Y[5],AB[5],SUM_Y[4],AB[4]}),
+// 	.Y(ic24_Y));
+
+// 	logic [3:0] ic8_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic110 
+// 	(.Enable_bar(1'b0),.Select(BACK2SELn),
+// 	.A_2D({1'b1,WDn,~M1Hn,AB[10],SUM_Y[8],AB[9],ic13B_Q,AB[8]}), //HACK ~M1Hn
+// 	.Y(ic8_Y));
+
+// 	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(11), .DATA_HEX_FILE("rnd2K.bin_vmem.txt")) ic22(	
+
+// 		.clk(clk),
+// 		.ADDR({ic8_Y[2:0],ic24_Y[3:0],ic9_Y[3:0]}),
+// 		.DATA(SRAM_Din),
+// 		.cen(1'b1), //active high
+// 		.we(~ic8_Y[3]), //active high
+// 		.Q(SRAM_Dout)
+//     );
+// 	assign SRAM_Dout2 = SRAM_Dout;
+// `endif
 
 	logic ic75a; //OR gate
-	assign ic75a = (M1Hn | BACK2SELn);
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	assign ic75a = (main_2xb | BACK2SELn);
+// `else
+// 	assign ic75a = (M1Hn | BACK2SELn);
+// `endif
 
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces tri-state logic ---
 // This replaces TTL logic LS245 ICs: ic80
@@ -172,13 +199,13 @@ module XSleenaCore_BACK2 (
 //-------------------------------------------------------------------------------
 
 	logic [7:0] ic21_Q;
-	ttl_74273_sync ic21(.CLRn(1'b1), .Clk(clk), .Cen(T2n), .D(SRAM_Dout), .Q(ic21_Q));
+	ttl_74273_sync ic21(.CLRn(1'b1), .Clk(clk), .Cen(T2n), .D(SRAM_Dout2), .Q(ic21_Q));
 
 	logic [7:0] ic32_Q;
 	ttl_74273_sync ic32(.CLRn(1'b1), .Clk(clk), .Cen(BLA2), .D(ic21_Q), .Q(ic32_Q));
 
 	logic [6:0] ic20_Q;
-	ttl_74273_sync #(.BLOCKS(7)) ic20(.CLRn(1'b1), .Clk(clk), .Cen(T3n), .D({SRAM_Dout[7:4],SRAM_Dout[2:0]}), .Q(ic20_Q));
+	ttl_74273_sync #(.BLOCKS(7)) ic20(.CLRn(1'b1), .Clk(clk), .Cen(T3n), .D({SRAM_Dout2[7:4],SRAM_Dout2[2:0]}), .Q(ic20_Q));
 
 	logic [6:0] ic31_Q;
 	ttl_74273_sync #(.BLOCKS(7)) ic31(.CLRn(1'b1), .Clk(clk), .Cen(BLA2), .D(ic20_Q), .Q(ic31_Q));
@@ -199,10 +226,6 @@ module XSleenaCore_BACK2 (
 	// ROMH: IC44,IC45,IC46,IC47
 	// ROML: IC43,IC42,IC41,IC40
 	//*** START OF BACK2 ROM address request generator ***
-	// logic [24:0] req_ROM_addr;
-	// logic ROM_req;
-	// logic ROM_data_rdy;
-	// logic [15:0] ROM_data;
 	logic [7:0] ROMH, ROML;
 
 	logic last_HCLKn;
@@ -237,21 +260,6 @@ module XSleenaCore_BACK2 (
 			ROML <= sdr_data[7:0];
 		end
 	end
-
-	// sdr_req_manager_single back2_sdr_req_man(
-	// 	.clk(clk_ram),
-	// 	.clk_ram(clk_ram),
-
-	// 	.rom_addr(req_ROM_addr),
-	// 	.rom_data(ROM_data),
-	// 	.rom_req(ROM_req),
-	// 	.rom_rdy(ROM_data_rdy),
-
-	// 	.sdr_addr(sdr_addr),
-	// 	.sdr_data(sdr_data),
-	// 	.sdr_req(sdr_req),
-	// 	.sdr_rdy(sdr_rdy)
-	// );
 	//*** END OF BACK2 ROM address request generator ***
 
 	logic ic54a,ic54d,ic54b; //XOR gate

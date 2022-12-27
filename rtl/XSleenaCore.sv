@@ -22,6 +22,7 @@
 `define RENDER_MAP_LAYER
 `define RENDER_BACK1_LAYER
 `define RENDER_BACK2_LAYER
+`define CPU_OVERCLOCK_HACK
 
 module XSleenaCore (
 	input wire CLK,
@@ -94,7 +95,12 @@ module XSleenaCore (
 	//coin counters
 	output logic CUNT1, //to coin counter 1
 	output logic CUNT2, //to coin counter 2
-	input  wire  pause_rq
+
+	//pause interface
+	input  wire  pause_rq,
+
+	//hacks interface
+	input wire [1:0] CPU_turbo_mode //{turbo_m,turbo_s}
 );
 	//Clocking signals
 	logic HCLK, HCLKn;
@@ -159,25 +165,48 @@ module XSleenaCore (
 	//Clock CEN generator
 	logic CLK12_CEN, CLK12n_CEN;
 	logic HCLK_CEN, HCLKn_CEN;
-	// XSleenaCore_CLK_CEN_Cen xs_clkcen(
-    // 	.i_clk(CLK), //48MHz
-    // 	.clk_12_cen(CLK12_CEN),
-	// 	.HCLKn_cen(HCLKn_CEN)
-	// );
 
-
-	//Using 12.545040 system clock, you get 60.05fps
-	//WC=13 master clock: 60MHz, system clock:12.545040 n=824,  m=3941  / 12MHz n=1, m=5
-	//WC=13 master clock: 48MHz, system clock:12.545040 n=1030, m=3941 / 12MHz n=1, m=4
-	//WC=11 master clock: 48MHz, system clock:12.545040 n=351, m=1343 / 12MHz n=1, m=4
-	//WC=11 master clock: 60MHz, system clock:12.545027 n=267,  m=1277  / 12MHz n=1, m=5
-	jtframe_frac_cen #(.WC(11), .W(2)) xs_clkcen
+	jtframe_frac_cen #(.WC(8), .W(2)) xs_clkcen
 	(
 		.clk(CLK),
-		.n(NATIVE_VFREQ ? 11'd1 : 11'd351),
-		.m(NATIVE_VFREQ ? 11'd4 : 11'd1343),
+		.n(8'd1),
+		.m(8'd4),
 		.cen({HCLK_CEN, CLK12_CEN})
 	);
+
+	//CPU Turbo mode Hack
+	logic main_1x,  main_1xb; //M2H, M2Hn
+	logic main_2x,  main_2xb; //M1H, M1Hn
+	logic main_4x,  main_4xb; //HCLK, HCLKn
+	logic sub_1x,  sub_1xb;
+	logic sub_2x,  sub_2xb;
+	logic sub_4x,  sub_4xb;
+
+	always_comb begin //maincpu
+		case(CPU_turbo_mode[1])
+			1'd0: begin //1.00x 
+				main_1x = M2H; main_2x = M1H; main_4x = _HCLK;
+				main_1xb = M2Hn; main_2xb = M1Hn; main_4xb = _HCLKn;
+			end
+			1'd1: begin //2.00x
+				main_1x = M1H; main_2x = _HCLK; main_4x = CLK12_CEN;
+				main_1xb = M1Hn; main_2xb = _HCLKn; main_4xb = ~CLK12_CEN;
+			end
+		endcase
+	end
+
+	always_comb begin //subcpu
+		case(CPU_turbo_mode[0])
+			1'd0: begin //1.00x 
+				sub_1x = M2H; sub_2x = M1H; sub_4x = _HCLK;
+				sub_1xb = M2Hn; sub_2xb = M1Hn; sub_4xb = _HCLKn;
+			end
+			1'd1: begin //2.00x
+				sub_1x = M1H; sub_2x = _HCLK; sub_4x = CLK12_CEN;
+				sub_1xb = M1Hn; sub_2xb = _HCLKn; sub_4xb = ~CLK12_CEN;
+			end
+		endcase
+	end
 
 	//  --------------------------
 	// |    CONNECTORS (J1,J2)    |
@@ -185,10 +214,10 @@ module XSleenaCore (
 	// SHARED SIGNALS BETWEEN TOP AND BOTTOM BOARDS
 	// See schematics pages 10A and 10B
 
-    logic M2H, M2Hn;
-    logic M1H, M1Hn;
-	logic _HCLK;
-	logic _HCLKn;
+    (* keep *) logic M2H, M2Hn;
+    (* keep *) logic M1H, M1Hn;
+	(* keep *) logic _HCLK;
+	(* keep *) logic _HCLKn;
 	logic _P1_P2n;
 
     assign M2H = HN[1];
@@ -268,6 +297,9 @@ module XSleenaCore (
         .OBCH(OBCH)
 	);
 
+	//Generate signals for main,sub CPU for turbo modes
+
+
 	//MiSTer Video signals
 	//
 	//HSYNC
@@ -283,6 +315,8 @@ module XSleenaCore (
 	XSleenaCore_BACK1 xs_back1(
 		.clk(CLK),
 		.clk_ram(SDR_CLK),
+		//CPU Clocking
+		.main_2xb(main_2xb),
 		.RESETn(RSTn),
 		.M1Hn(M1Hn),
 		.AB(AB[10:0]),
@@ -318,8 +352,9 @@ module XSleenaCore (
 	logic [6:0] MAPCOL;
 	XSleenaCore_MAP xs_map(
 		.clk(CLK),
-		//.clk_ram(SDR_CLK),
-		//.RSTn(RSTn),
+		//CPU Clocking
+		.main_2xb(main_2xb),
+		
 		.HN(HN),
 		.M4Hn(M4Hn),
 		.AB(AB[10:0]),
@@ -354,6 +389,9 @@ module XSleenaCore (
 	XSleenaCore_OBJ xs_obj(
 		.clk(CLK),
 		.clk_ram(SDR_CLK),
+		//CPU Clocking
+		.main_2xb(main_2xb),
+
 		.M1Hn(M1Hn),
 		.OBJSELn(OBJSELn),
 		.AB(AB[8:0]), //only 512bytes accesible
@@ -403,20 +441,56 @@ module XSleenaCore (
 
 	//---- Main CPU input data bus selector
 	always_comb begin
-		if(RW && !MAPSELn && !M1Hn)         DB_in = MAP_Dout;
-		else if(RW && !BACK1SELn && !M1Hn)  DB_in = BACK1_Dout;
-		else if(RW && !BACK2SELn && !M1Hn)  DB_in = BACK2_Dout;
-		else if(RW && !OBJSELn && !M1Hn)    DB_in = OBJ_Dout;
-		else if(RW && !PLSELn)              DB_in = PLRAM_Dout;
-		else if(RW && !IOn)                 DB_in = IO_Dout;
-		else                                DB_in = 8'hFF;
+		if(RW && !MAPSELn && !main_2xb)         DB_in = MAP_Dout;
+		else if(RW && !BACK1SELn && !main_2xb)  DB_in = BACK1_Dout;
+		else if(RW && !BACK2SELn && !main_2xb)  DB_in = BACK2_Dout;
+		else if(RW && !OBJSELn   && !main_2xb)  DB_in = OBJ_Dout;
+		else if(RW && !PLSELn)                  DB_in = PLRAM_Dout;
+		else if(RW && !IOn)                     DB_in = IO_Dout;
+		else                                    DB_in = 8'hFF;
 	end
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+// 	always_comb begin
+// 		if(RW && !MAPSELn && !HCLKn)         DB_in = MAP_Dout;
+// 		else if(RW && !BACK1SELn && !HCLKn)  DB_in = BACK1_Dout;
+// 		else if(RW && !BACK2SELn && !HCLKn)  DB_in = BACK2_Dout;
+// 		else if(RW && !OBJSELn && !HCLKn)    DB_in = OBJ_Dout;
+// 		else if(RW && !PLSELn)              DB_in = PLRAM_Dout;
+// 		else if(RW && !IOn)                 DB_in = IO_Dout;
+// 		else                                DB_in = 8'hFF;
+// 	end
+// `else
+// 	always_comb begin
+// 		if(RW && !MAPSELn && !M1Hn)         DB_in = MAP_Dout;
+// 		else if(RW && !BACK1SELn && !M1Hn)  DB_in = BACK1_Dout;
+// 		else if(RW && !BACK2SELn && !M1Hn)  DB_in = BACK2_Dout;
+// 		else if(RW && !OBJSELn && !M1Hn)    DB_in = OBJ_Dout;
+// 		else if(RW && !PLSELn)              DB_in = PLRAM_Dout;
+// 		else if(RW && !IOn)                 DB_in = IO_Dout;
+// 		else                                DB_in = 8'hFF;
+// 	end
+// `endif
 	
 	//Schematics pages: 1B,2B 
     XSleenaCore_cpuA_B xs_cpuAB( 
 		.clk(CLK),
 		.clk_ram(SDR_CLK),
 		.clk12M_cen(CLK12_CEN),
+		//CPU clocking
+		.main_4x(main_4x),
+		.main_4xb(main_4xb),
+		.main_2x(main_2x),
+		.main_2xb(main_2xb),
+		.main_1x(main_1x),
+		.main_1xb(main_1xb),
+		.sub_4x(sub_4x),
+		.sub_4xb(sub_4xb),
+		.sub_2x(sub_2x),
+		.sub_2xb(sub_2xb),
+		.sub_1x(sub_1x),
+		.sub_1xb(sub_1xb),
+
   	    .RSTn(RSTn),
 		.VBLK(VBLK),
 	    .W3A09n(W3A09n), //maincpu NMI clear
@@ -428,7 +502,7 @@ module XSleenaCore (
 	    .M2Hn(M2Hn),
 	    .M1H(M1H),
 		.M1Hn(M1Hn),
-		.HCLK(_HCLK),
+		.HCLK(_HCLK), //clock for CPU_OVERCLOCK_HACK
 	    .BSL(BSL), //ROM BANK Switch in 0x4000-0x7fff CPU address space
         //outputs
         .AB(AB[14:0]), //shared address bus
@@ -451,6 +525,11 @@ module XSleenaCore (
 		.sdr_req_b(sdr_scpu_req),
 		.sdr_rdy_b(sdr_scpu_rdy),
 		.sdr_data_b(sdr_scpu_dout),
+		//ROM interface
+		.bram_wr(bram_wr),
+		.bram_data(bram_data),
+		.bram_addr(bram_addr),
+		.bram_cs(bram_cs[1:0]), //MAIN+SUB CPUs ROM CODE
 		//pause
 		.pause_rq(pause_rq)
     );
@@ -505,6 +584,9 @@ module XSleenaCore (
 	XSleenaCore_BACK2 xs_back2(
 		.clk(CLK),
 		.clk_ram(SDR_CLK),
+		//CPU Clocking
+		.main_2xb(main_2xb),
+
 		.RESETn(RSTn),
 		.M1Hn(M1Hn),
 		.AB(AB[10:0]),

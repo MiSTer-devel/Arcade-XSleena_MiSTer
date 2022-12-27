@@ -23,11 +23,15 @@
 // LD1n  = (OBJCHG) ? M3n  : 1'b1;
 // CLR0n = (OBJCHG) ? CLRn : 1'b1;
 // LD0n  = (OBJCHG) ? 1'b1 :  M3n;
+`define CPU_OVERCLOCK_HACK
 import xain_pkg::*;
 
 module XSleenaCore_OBJ (
 	input wire clk,
 	input wire clk_ram,
+	//CPU Clocking
+	input wire main_2xb,
+	
 	input wire M1Hn,
 	input wire OBJSELn,
 	input wire [8:0] AB, //only 512bytes accesible
@@ -97,46 +101,68 @@ module XSleenaCore_OBJ (
 	wire [7:0] ic121_D; //shared bidirectional SRAM data bus
 
 	//--- TMM2015BP-10 2Kx8 100ns SRAM ---
-	//Address selector
-	logic [3:0] ic2_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic2
-	(.Enable_bar(1'b0),.Select(OBJSELn),
-	.A_2D({HN[3],AB[3],HN[2],AB[2],HN[1],AB[1],HN[0],AB[0]}),
-	.Y(ic2_Y));
-	
-	logic [3:0] ic1_Y;
-	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic1
-	(.Enable_bar(1'b0),.Select(OBJSELn),
-	.A_2D({HN[7],AB[7],HN[6],AB[6],HN[5],AB[5],HN[4],AB[4]}), //Check on PCB
-	.Y(ic1_Y));
-
-	logic [1:0] ic17bis_Y;
-	ttl_74157 #(.BLOCKS(2), .DELAY_RISE(0), .DELAY_FALL(0)) ic17bis
-	(.Enable_bar(1'b0),.Select(OBJSELn),
-	.A_2D({1'b1,WDn,VCUNT,AB[8]}), //Check on PCB the IC#
-	.Y(ic17bis_Y));
 
 	//Only accessible 512bytes in the PCB
 	//Following he TMM2018D datasheet, when WEn=0, the output is disabled (Hi-Z)
 	//data input: CSn=0, WEn=1
 	//data output: CSn=0,OEn=0,WEn=1
 	//if CSn=1, row,column decoders are disabled, data input disabled, data output disable
-	logic [7:0] SRAM_Din, SRAM_Dout;
-	//"xs_jungle_obj.bin_vmem.txt"
-	//"mix_double_height_and_no_double_height_obj.bin_vmem.txt"
-	//"xs_jungle_obj.bin_vmem.txt" "Only_0x28_SPR_NO_DOUBLE_HEIGHT_obj.bin_vmem.txt" "Only_0x2A_SPR_NO_DOUBLE_HEIGHT_obj.bin_vmem.txt"
-	// SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("xs_jungle_obj.bin_vmem.txt")) ic3(
-	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("xs_desert_obj.bin_vmem.txt")) ic3(
-		.clk(clk),
-		.ADDR({ic17bis_Y[0],ic1_Y[3:0],ic2_Y[3:0]}),
-		.DATA(SRAM_Din),
-		.cen(1'b1), //active high
-		.we(~ic17bis_Y[1]), //active high
-		.Q(SRAM_Dout)
-    );
+	logic [7:0] SRAM_Din, SRAM_Dout, SRAM_Dout2;
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	SRAM_dual_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("rnd512B.bin_vmem.txt")) ic3(
+		.clk0(clk),
+		.clk1(clk),
+		.ADDR0(AB[8:0]),
+		.ADDR1({VCUNT,HN[7:0]}),
+		.DATA0(SRAM_Din),
+		.DATA1(8'h00),
+		.cen0(1'b1),
+		.cen1(1'b1),
+		.we0(OBJSELn ? 1'b0 : ~WDn),
+		.we1(1'b0),
+		.Q0(SRAM_Dout),
+		.Q1(SRAM_Dout2)
+	);
+// `else
+// 	//Address selector
+// 	logic [3:0] ic2_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic2
+// 	(.Enable_bar(1'b0),.Select(OBJSELn),
+// 	.A_2D({HN[3],AB[3],HN[2],AB[2],HN[1],AB[1],HN[0],AB[0]}),
+// 	.Y(ic2_Y));
+	
+// 	logic [3:0] ic1_Y;
+// 	ttl_74157 #(.BLOCKS(4), .DELAY_RISE(0), .DELAY_FALL(0)) ic1
+// 	(.Enable_bar(1'b0),.Select(OBJSELn),
+// 	.A_2D({HN[7],AB[7],HN[6],AB[6],HN[5],AB[5],HN[4],AB[4]}), //Check on PCB
+// 	.Y(ic1_Y));
+
+// 	logic [1:0] ic17bis_Y;
+// 	ttl_74157 #(.BLOCKS(2), .DELAY_RISE(0), .DELAY_FALL(0)) ic17bis
+// 	(.Enable_bar(1'b0),.Select(OBJSELn),
+// 	.A_2D({1'b1,WDn,VCUNT,AB[8]}), //Check on PCB the IC#
+// 	.Y(ic17bis_Y));
+
+// 	SRAM_sync_init #(.DATA_WIDTH(8), .ADDR_WIDTH(9), .DATA_HEX_FILE("rnd512B.bin_vmem.txt")) ic3(
+// 		.clk(clk),
+// 		.ADDR({ic17bis_Y[0],ic1_Y[3:0],ic2_Y[3:0]}),
+// 		.DATA(SRAM_Din),
+// 		.cen(1'b1), //active high
+// 		.we(~ic17bis_Y[1]), //active high
+// 		.Q(SRAM_Dout)
+//     );
+// 	assign SRAM_Dout2 = SRAM_Dout;
+// `endif
 
 	logic ic38a; //OR gate
-	assign ic38a = (M1Hn | OBJSELn);
+//CPU OVERCLOCK HACK
+// `ifdef CPU_OVERCLOCK_HACK
+	assign ic38a = (main_2xb | OBJSELn); //this selector enables OBJ tilemap SRAM input/output external data bus
+// `else
+// 	assign ic38a = (M1Hn | OBJSELn); //this selector enables OBJ tilemap SRAM input/output external data bus
+// `endif
+	
 //--- FPGA Synthesizable unidirectinal data bus MUX, replaces tri-state logic ---
 // This replaces TTL logic LS245 ICs: ic5
 // Adds one master clock period delay
@@ -154,7 +180,7 @@ module XSleenaCore_OBJ (
 //-------------------------------------------------------------------------------
 
 	logic [7:0] ic4_Q;
-	ttl_74273_sync ic4(.CLRn(1'b1), .Clk(clk), .Cen(HCLKn), .D(SRAM_Dout), .Q(ic4_Q));
+	ttl_74273_sync ic4(.CLRn(1'b1), .Clk(clk), .Cen(HCLKn), .D(SRAM_Dout2), .Q(ic4_Q));
 
 	logic [7:0] OBJ_Y_SUM;
 	assign OBJ_Y_SUM = VPOS + ic4_Q;
@@ -179,7 +205,7 @@ module XSleenaCore_OBJ (
 	end
 
 	logic ic38d; //OR gate
-	assign ic38d = (SRAM_Dout[7] | OBJ_Y_SUM[4]);
+	assign ic38d = (SRAM_Dout2[7] | OBJ_Y_SUM[4]);
 
 	logic ic21b; //LS20 4-input NAND gate
 	assign ic21b = ~(OBJ_Y_SUM[7] & OBJ_Y_SUM[6] & OBJ_Y_SUM[5] & ic38d);
