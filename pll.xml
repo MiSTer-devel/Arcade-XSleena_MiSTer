@@ -5,7 +5,7 @@
 <generic name="device_family" value="Cyclone V" />
 <generic name="device" value="5CEBA2F17A7" />
 <generic name="gui_device_speed_grade" value="2" />
-<generic name="gui_pll_mode" value="Integer-N PLL" />
+<generic name="gui_pll_mode" value="Fractional-N PLL" />
 <generic name="gui_reference_clock_frequency" value="50.0" />
 <generic name="gui_channel_spacing" value="0.0" />
 <generic name="gui_operation_mode" value="direct" />
@@ -19,7 +19,7 @@
 <generic name="gui_frac_multiply_factor" value="1" />
 <generic name="gui_divide_factor_n" value="1" />
 <generic name="gui_cascade_counter0" value="false" />
-<generic name="gui_output_clock_frequency0" value="60.0" />
+<generic name="gui_output_clock_frequency0" value="48.0" />
 <generic name="gui_divide_factor_c0" value="1" />
 <generic name="gui_actual_output_clock_frequency0" value="0 MHz" />
 <generic name="gui_ps_units0" value="ps" />
@@ -28,7 +28,7 @@
 <generic name="gui_actual_phase_shift0" value="0" />
 <generic name="gui_duty_cycle0" value="50" />
 <generic name="gui_cascade_counter1" value="false" />
-<generic name="gui_output_clock_frequency1" value="120.0" />
+<generic name="gui_output_clock_frequency1" value="96.0" />
 <generic name="gui_divide_factor_c1" value="1" />
 <generic name="gui_actual_output_clock_frequency1" value="0 MHz" />
 <generic name="gui_ps_units1" value="ps" />
@@ -182,11 +182,11 @@
 <generic name="gui_duty_cycle17" value="50" />
 <generic name="gui_pll_auto_reset" value="On" />
 <generic name="gui_pll_bandwidth_preset" value="Auto" />
-<generic name="gui_en_reconf" value="false" />
+<generic name="gui_en_reconf" value="true" />
 <generic name="gui_en_dps_ports" value="false" />
 <generic name="gui_en_phout_ports" value="false" />
 <generic name="gui_phout_division" value="1" />
-<generic name="gui_mif_generate" value="false" />
+<generic name="gui_mif_generate" value="true" />
 <generic name="gui_enable_mif_dps" value="false" />
 <generic name="gui_dps_cntr" value="C0" />
 <generic name="gui_dps_num" value="1" />
