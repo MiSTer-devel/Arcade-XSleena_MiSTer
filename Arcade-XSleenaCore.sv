@@ -20,6 +20,7 @@
 //
 //============================================================================
 `default_nettype none
+`define CPU_OVERCLOCK_HACK
 
 module emu
 (
@@ -186,8 +187,8 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 //assign {DDRAM_CLK, DDRAM_BURSTCNT, DDRAM_ADDR, DDRAM_DIN, DDRAM_BE, DDRAM_RD, DDRAM_WE} = '0;  
 
 assign VGA_F1 = 0;
-assign VGA_SCALER  = status[5];
-
+assign VGA_SCALER  = 0;
+assign FB_FORCE_BLANK = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
 assign BUTTONS = 0;
@@ -195,15 +196,19 @@ assign BUTTONS = 0;
 //////////////////////////////////////////////////////////////////
 
 wire [1:0] ar = status[2:1];
-wire [1:0] scandoubler_fx = status[4:3];
+//Scandoubler freezes the display, dont work with the core!
+//wire [1:0] scandoubler_fx = status[4:3];
 wire orientation = ~status[10];
 wire pause_in_osd = status[8];
 wire system_pause;
+wire [1:0] turbo_mode; //{turbo_m,turbo_s}
 
 //assign VGA_SL = scandoubler_fx; USED BY arcade_video
 assign HDMI_FREEZE = 0; //system_pause;
 wire NATIVE_VFREQ = status[9] == 1'd0;
 
+video_timing_t video_timing;
+assign video_timing = video_timing_t'({1'b0,status[9]});
 
 // If video timing changes, force mode update
 reg  video_status;
@@ -216,18 +221,17 @@ always @(posedge MS_CLK) begin
 end
 
 `include "build_id.v" 
-localparam CONF_STR = {
+localparam CONF_STR ={
 	"XSleenaCore;;",
 	"-;",
     "P1,Video Settings;",
     "P1O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
-	"P1O[4:3],Scandoubler Fx,None,CRT 25%,CRT 50%,CRT 75%;",
-	"P1O[5],VGA Scaler,Off,On;",
 	"P1O[6],Flip,Off,On;",
 	"P1O[7],Rotate CCW,Off,On;",
     "P1-;",
     "P1O[9],Video Timing,57.44Hz(Native),60Hz(Standard);",
     "P1O[10],Orientation,Horz,Vert;",
+	"-;",
     "O[8],OSD Pause,Off,On;",
     "-;",
 	"P2,SNAC;",
@@ -238,8 +242,10 @@ localparam CONF_STR = {
 	"P3O[20],Request BACK2,On,Off;",
 	"P3O[21],Request OBJ,On,Off;",
     "-;",
-    "DIP;",
+	"P4,Hacks;",
+	"P4O[29],CPU Turbo,1.0x,2.0x;",
     "-;",
+	"DIP;",
 	"T[0],Reset;",
 	"R[0],Reset and close OSD;",
 	"J1,Shot,Jump,Start P1,Coin,Start P2,Pause;",
@@ -248,6 +254,8 @@ localparam CONF_STR = {
 	"V,v",`BUILD_DATE 
 };
 
+	// "P4O[30],Enable Hiscores,Off,On;",
+	// "P4O[31],Autosave Hiscores,Off,On;",
 
 //debug SDRAM interface
 wire [2:0] DBG_SDR_REQ = status[21:19];
@@ -303,6 +311,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 //wire clk_112p90M;
 //wire clk_112p90M_PS;
 wire pll_locked;
+logic pll_init_locked = 0;
 wire clk_60M;
 wire clk_120M;
 
@@ -323,12 +332,107 @@ pll pll
 	.rst(0),
 	.outclk_0(MS_CLK),
 	.outclk_1(SDR_CLK),
-	.locked(pll_locked)
+	.locked(pll_locked),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
 );
 
-wire reset = RESET | status[0] | buttons[1] | ioctl_download;
+wire reset = RESET | status[0] | buttons[1] | ~pll_init_locked;
 
 wire MS_CLK, SDR_CLK, SDR_PS_CLK;
+//PLL Reconfig
+
+wire [63:0] reconfig_to_pll;
+wire [63:0] reconfig_from_pll;
+wire        cfg_waitrequest;
+reg         cfg_write;
+reg   [5:0] cfg_address;
+reg  [31:0] cfg_data;
+
+pll_cfg pll_cfg
+(
+	.mgmt_clk(CLK_50M),
+	.mgmt_reset(0),
+	.mgmt_waitrequest(cfg_waitrequest),
+	.mgmt_read(0),
+	.mgmt_readdata(),
+	.mgmt_write(cfg_write),
+	.mgmt_address(cfg_address),
+	.mgmt_writedata(cfg_data),
+	.reconfig_to_pll(reconfig_to_pll),
+	.reconfig_from_pll(reconfig_from_pll)
+);
+localparam PLL_PARAM_COUNT = 9;
+
+//50.13504
+//100.27008
+wire [31:0] PLL_60HZ[PLL_PARAM_COUNT * 2] = '{
+    'h0, 'h0, // set waitrequest mode
+    'h4, 'hA0A, // M COUNTER
+    'h3, 'h10000, // N COUNTER
+    'h5, 'hA0A, // C0 COUNTER
+    'h5, 'h40505, // C1 COUNTER
+	'h9, 'h2, //CHARGE PUMP
+    'h8, 'h7, // BANDWIDTH SETTING
+    'h7, 'h0DD3FDC4, //M COUNTER FRACTION
+    'h2, 'h1 // start fractional PLL reconfigure
+};
+
+//48.0
+//96.0
+wire [31:0] PLL_57HZ[PLL_PARAM_COUNT * 2] = '{
+    'h0, 'h0, // set waitrequest mode
+    'h4, 'h20504, // M COUNTER
+    'h3, 'h10000, // N COUNTER
+    'h5, 'h505, // C0 COUNTER
+    'h5, 'h60302, // C1 COUNTER
+	'h9, 'h2, //CHARGE PUMP
+    'h8, 'h7, // BANDWIDTH SETTING
+    'h7, 'h9999999A, //M COUNTER FRACTION
+    'h2, 'h1 // start fractional PLL reconfigure 
+};
+
+
+video_timing_t video_timing_lat = VIDEO_57HZ;
+reg reconfig_pause = 0;
+
+always @(posedge CLK_50M) begin
+	reg [3:0] param_idx = 0;
+    reg [7:0] reconfig = 0;
+
+	cfg_write <= 0;
+
+	if (pll_locked & ~cfg_waitrequest) begin
+        pll_init_locked <= 1;
+		if (&reconfig) begin // do reconfig
+            case(video_timing_lat)
+            VIDEO_57HZ: begin
+                cfg_address <= PLL_57HZ[param_idx * 2 + 0][5:0];
+                cfg_data    <= PLL_57HZ[param_idx * 2 + 1];
+            end
+            VIDEO_60HZ: begin
+                cfg_address <= PLL_60HZ[param_idx * 2 + 0][5:0];
+                cfg_data    <= PLL_60HZ[param_idx * 2 + 1];
+            end
+            endcase
+
+            cfg_write <= 1;
+            param_idx <= param_idx + 4'd1;
+            if (param_idx == PLL_PARAM_COUNT - 1) reconfig <= 8'd0;
+
+        end else if (video_timing != video_timing_lat) begin // new timing requested
+            video_timing_lat <= video_timing;
+            reconfig <= 8'd1;
+            reconfig_pause <= 1;
+            param_idx <= 0;
+        end else if (|reconfig) begin // pausing before reconfigure
+            reconfig <= reconfig + 8'd1;
+        end else begin
+            reconfig_pause <= 0; // unpause once pll is locked again
+        end
+    end
+end
+///////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////
 // SDRAM
@@ -390,10 +494,20 @@ wire bram_wr;
 sdram sdram
 (
     .*,
-    .doRefresh(0),
-    .init(~pll_locked),
+    .doRefresh(1),
+    .init(~pll_init_locked),
     .clk(SDR_CLK),
-    
+`ifdef CPU_OVERCLOCK_HACK
+    .ch0a_addr(24'h0),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
+    .ch0a_dout(),
+    .ch0a_req(1'b0),
+    .ch0a_ready(),
+
+    .ch0b_addr(24'h0),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
+    .ch0b_dout(),
+    .ch0b_req(1'b0),
+    .ch0b_ready(),
+`else    
     .ch0a_addr(sdr_mcpu_addr[24:1]),//cpu_addr[16:0] 64Kb Main CPU + 64Kb Sub CPU
     .ch0a_dout(sdr_mcpu_dout),
     .ch0a_req(sdr_mcpu_req),
@@ -403,7 +517,7 @@ sdram sdram
     .ch0b_dout(sdr_scpu_dout),
     .ch0b_req(sdr_scpu_req),
     .ch0b_ready(sdr_scpu_rdy),
-
+`endif
     .ch1_addr(sdr_obj_addr[24:1]), //16bit address
     .ch1_dout(sdr_obj_dout),
     .ch1_req(sdr_obj_req & ~DBG_SDR_REQ[2]),
@@ -420,7 +534,7 @@ sdram sdram
     .ch3_be(sdr_ch3_be),
     .ch3_rnw(sdr_ch3_rnw),
     .ch3_req(sdr_ch3_req),
-    .ch3_ready(sdr_ch3_rdy),
+    .ch3_ready(sdr_ch3_rdy)
 );
 
 rom_loader rom_loader(
@@ -529,7 +643,9 @@ XSleenaCore xlc (
 	//coin counters
 	//.CUNT1(CUNT1),
 	//.CUNT2(CUNT2),
-	 .pause_rq(system_pause)
+	 .pause_rq(system_pause),
+	//HACKS
+	.CPU_turbo_mode(turbo_mode),
 );
 
 //Audio
@@ -580,7 +696,7 @@ wire flip = status[6];
 arcade_video #(256,24) arcade_video
 (
         .*,
-		.fx(scandoubler_fx),
+		.fx(3'b000),
 		.gamma_bus(),
 		.forced_scandoubler(forced_scandoubler),
         .clk_video(MS_CLK),
@@ -796,4 +912,11 @@ pause #(8,8,8,60) pause ( //R=G=B=8, 60MHz timing
  .options({1'b0, pause_in_osd}),
  .OSD_STATUS(OSD_STATUS)
 );
+
+//HACKS
+//Enable turbo mode to speed up the main and sub CPUs from 1.5MHz (original hardware speed) to 3.MHz
+//for do it this was required to change the RAM related areas of tile/sprites from single port to dual
+//port because in turbo mode sometimes the main CPU is accessing to this RAM areas while the tile engine 
+//is drawing to the screen.
+assign turbo_mode = {status[29],status[29]}; //{turbo_m],turbo_s}
 endmodule
