@@ -114,6 +114,7 @@ module XSleenaCore (
 	logic VBLK;
     logic [7:0] VPOS;
     logic [7:0] DVPOS;
+    logic HBLKn;
     logic VBLKn;
     logic IMS;
     logic T1n;
@@ -272,6 +273,7 @@ module XSleenaCore (
         .DVPOS(DVPOS),
         .IMS(IMS),
         //Video signals
+        .HBLKn(HBLKn),
         .VBLK(VBLK),
         .VBLKn(VBLKn),
 		.VSYNC(VSYNC),
@@ -305,7 +307,7 @@ module XSleenaCore (
 	//HSYNC
 	//VSYNC
 	assign PIX_CLK  = HCLKn;
-	assign HBLANK   = BLKn;
+	assign HBLANK   = HBLKn;
 	assign VBLANK   = VBLKn;
 	assign CE_PIXEL = HCLKn_CEN;
 	
