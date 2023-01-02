@@ -9,7 +9,7 @@
 	<rbf>XSleenaCore</rbf>
 	<about author="RndMnkIII" twitter="@RndMnkIII"></about>
 	<resolution>15.62kHz</resolution>
-	<rotation>vertical (cw)</rotation>
+	<rotation>horizontal</rotation>
 	<players>2</players>
 	<joystick>8-way</joystick>
 	<special_controls></special_controls>
