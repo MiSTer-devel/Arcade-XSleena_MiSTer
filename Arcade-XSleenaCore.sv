@@ -196,14 +196,12 @@ assign BUTTONS = 0;
 //////////////////////////////////////////////////////////////////
 
 wire [1:0] ar = status[2:1];
-//Scandoubler freezes the display, dont work with the core!
-//wire [1:0] scandoubler_fx = status[4:3];
+wire [2:0] scandoubler_fx = status[5:3];
 wire orientation = ~status[10];
 wire pause_in_osd = status[8];
 wire system_pause;
 wire [1:0] turbo_mode; //{turbo_m,turbo_s}
 
-//assign VGA_SL = scandoubler_fx; USED BY arcade_video
 assign HDMI_FREEZE = 0; //system_pause;
 wire NATIVE_VFREQ = status[9] == 1'd0;
 
@@ -231,6 +229,7 @@ localparam CONF_STR ={
     "P1-;",
     "P1O[9],Video Timing,57.44Hz(Native),60Hz(Standard);",
     "P1O[10],Orientation,Horz,Vert;",
+	"P1O[5:3],Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"-;",
     "O[8],OSD Pause,Off,On;",
     "-;",
@@ -696,8 +695,8 @@ wire flip = status[6];
 arcade_video #(256,24) arcade_video
 (
         .*,
-		.fx(3'b000),
-		.gamma_bus(),
+		.fx(scandoubler_fx),
+		.gamma_bus(gamma_bus),
 		.forced_scandoubler(forced_scandoubler),
         .clk_video(MS_CLK),
         .ce_pix(ce_pix),

@@ -52,6 +52,7 @@ module XSleenaCore_CLK(
   output logic IMS,
 
   //Video signals
+  output logic HBLKn,
   output logic VBLK,
   output logic VBLKn,
   output logic VSYNC,
@@ -439,6 +440,7 @@ module XSleenaCore_CLK(
   logic ic71B; //nor gate
   assign ic71B = ~(ic6A_Q | ic73B_Q);
   assign BLKn = ic71B;
+  assign HBLKn = ~ic6A_Q;
 
   logic ic72A_Q,ic72A_Qn;
   DFF_pseudoAsyncClrPre #(.W(1)) ic72A (
