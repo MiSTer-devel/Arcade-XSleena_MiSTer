@@ -52,7 +52,7 @@ Enable it in OSD>SNAC>DB15 Devices
 * __vga_scaler__: if you want play using a SVGA monitor use vga_scaler=1, in another case vga_scaler=0
 * __video_mode__: if you want to use a SVGA monitor with vga_scaler=1 set a compatible resolution with your SVGA monitor here. Example: video_mode=1 (1024x768#60). In another case use the video mode that best suit your screen
 ## Manual installation
-Rename the Arcade-XSleenaCore_XXXXXXXX.rbf file to XSleenaCore_XXXXXXXX.rbf and copy to the SD Card to the folder  /media/fat/_Arcade/cores and the .MRA files to /media/fat/_Arcade.
+Rename the Arcade-XSleena_XXXXXXXX.rbf file to XSleena_XXXXXXXX.rbf and copy to the SD Card to the folder  /media/fat/_Arcade/cores and the .MRA files to /media/fat/_Arcade.
 
 The required ROM files follow the MAME naming conventions (check inside MRA for this). Is the user responsability to be installed in the following folder:
 /media/fat/_Arcade/mame/<mame rom>.zip

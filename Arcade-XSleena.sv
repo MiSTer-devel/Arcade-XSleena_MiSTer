@@ -188,9 +188,11 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
 assign VGA_F1 = 0;
 assign VGA_SCALER  = 0;
+assign VGA_DISABLE = 0;
 assign FB_FORCE_BLANK = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
+assign LED_USER = 0;
 assign BUTTONS = 0;
 
 //////////////////////////////////////////////////////////////////
@@ -220,7 +222,7 @@ end
 
 `include "build_id.v" 
 localparam CONF_STR ={
-	"XSleenaCore;;",
+	"XSleena;;",
 	"-;",
     "P1,Video Settings;",
     "P1O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
@@ -644,7 +646,7 @@ XSleenaCore xlc (
 	//.CUNT2(CUNT2),
 	 .pause_rq(system_pause),
 	//HACKS
-	.CPU_turbo_mode(turbo_mode),
+	.CPU_turbo_mode(turbo_mode)
 );
 
 //Audio

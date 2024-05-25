@@ -19,16 +19,16 @@
 #
 # Quartus Prime
 # Version 17.0.2 Build 602 07/19/2017 SJ Lite Edition
-# Date created = 11:51:29  December 06, 2022
+# Date created = 08:33:25  May 25, 2024
 #
 # -------------------------------------------------------------------------- #
 
 QUARTUS_VERSION = "17.0"
-DATE = "11:51:29  December 06, 2022"
+DATE = "08:33:25  May 25, 2024"
 
 # Revisions
 
-PROJECT_REVISION = "Arcade-XSleenaCore_96SDR_TILESANDCODE"
-PROJECT_REVISION = "Arcade-XSleenaCore_96SDR_ONLY_TILES"
-PROJECT_REVISION = "Arcade-XSleenaCore_120SDR_ONLY_TILES"
-PROJECT_REVISION = "Arcade-XSleenaCore"
+PROJECT_REVISION = "Arcade-XSleena"
+PROJECT_REVISION = "Arcade-XSleena_96SDR_TILESANDCODE"
+PROJECT_REVISION = "Arcade-XSleena_96SDR_ONLY_TILES"
+PROJECT_REVISION = "Arcade-XSleena_120SDR_ONLY_TILES"
