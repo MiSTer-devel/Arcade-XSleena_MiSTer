@@ -188,6 +188,7 @@ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
 
 assign VGA_F1 = 0;
 assign VGA_SCALER  = 0;
+assign VGA_DISABLE = 0;
 assign FB_FORCE_BLANK = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
