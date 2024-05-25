@@ -40,3 +40,4 @@ db/
 _output_files/
 PLLJ_PLLSPE_INFO.txt
 jtag.cdf
+/output_files
