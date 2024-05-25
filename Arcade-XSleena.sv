@@ -192,6 +192,7 @@ assign VGA_DISABLE = 0;
 assign FB_FORCE_BLANK = 0;
 assign LED_DISK = 0;
 assign LED_POWER = 0;
+assign LED_USER = 0;
 assign BUTTONS = 0;
 
 //////////////////////////////////////////////////////////////////
@@ -645,7 +646,7 @@ XSleenaCore xlc (
 	//.CUNT2(CUNT2),
 	 .pause_rq(system_pause),
 	//HACKS
-	.CPU_turbo_mode(turbo_mode),
+	.CPU_turbo_mode(turbo_mode)
 );
 
 //Audio
