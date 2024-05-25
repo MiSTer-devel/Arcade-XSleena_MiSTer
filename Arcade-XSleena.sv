@@ -222,7 +222,7 @@ end
 
 `include "build_id.v" 
 localparam CONF_STR ={
-	"XSleenaCore;;",
+	"XSleena;;",
 	"-;",
     "P1,Video Settings;",
     "P1O[2:1],Aspect ratio,Original,Full Screen,[ARC1],[ARC2];",
